@@ -21,7 +21,7 @@ void decrypt(char *text, char *key) {
 }
 
 int main() {
-    char *text = "Texto a cifrar";
+    char *text = "TextoPrueba123";
     char ciphertext[50]; // Tamaño suficiente para almacenar el texto cifrado
     char key[50];       // Tamaño suficiente para almacenar la clave
 
