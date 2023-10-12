@@ -73,6 +73,8 @@ int main(int argc, char *argv[]){ //char **argv
   MPI_Init(NULL, NULL);
   MPI_Comm_size(comm, &N);
   MPI_Comm_rank(comm, &id);
+  double tstart, tend;
+
 
   // Lectura de txt
   char inputFileName[] = "input.txt"; // Nombre del archivo de entrada
@@ -128,6 +130,9 @@ int main(int argc, char *argv[]){ //char **argv
 
   MPI_Barrier(MPI_COMM_WORLD); // Barrera MPI
   int ciphlen = strlen(cipherLine);
+  if(id==0){
+    tstart = MPI_Wtime();
+  }
 
   // Descifrado
   int range_per_node = upper / N;
@@ -153,9 +158,11 @@ int main(int argc, char *argv[]){ //char **argv
   }
 
   if(id==0){
+    tend = MPI_Wtime();
     MPI_Wait(&req, &st);
     decrypt(found, (char *)cipherLine, ciphlen);
     printf("%li %s\n", found, cipherLine);
+    printf("\nTook %f ms to run\n", (tend-tstart) * 1000);
   }
 
   MPI_Finalize();
