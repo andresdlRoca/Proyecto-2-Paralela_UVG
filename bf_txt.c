@@ -11,10 +11,6 @@
 #include <openssl/des.h>
 
 void decrypt(long key, char *ciph, int len) {
-  // if (key < 100) {
-  //   printf("key %ld\n", key);
-  // }
-    
     DES_key_schedule keysched;
     DES_cblock des_key;
 
@@ -31,10 +27,6 @@ void decrypt(long key, char *ciph, int len) {
     // Decrypt the data
     for (int i = 0; i < len; i += 8) {
         DES_ecb_encrypt((DES_cblock *)(ciph + i), (DES_cblock *)(ciph + i), &keysched, DES_DECRYPT);
-    }
-
-    if (key == 42){
-      printf("key %ld ciph: %s\n", key, ciph);
     }
 }
 
@@ -59,15 +51,9 @@ void encrypt(long key, char *ciph, int len) {
 }
 
 int tryKey(long key, char *ciph, int len, char search[]){
-  // if (key == 42){
-  //   printf("key %ld ciph: %s\n", key, ciph);
-  // }
   char temp[len+1];
   memcpy(temp, ciph, len);
   temp[len]=0;
-  if (key == 42) {
-    printf("search: \"%s\"\n", search);
-  }
   decrypt(key, temp, len);
   return strstr((char *)temp, search) != NULL;
 }
@@ -89,59 +75,55 @@ int main(int argc, char *argv[]){ //char **argv
   MPI_Comm_rank(comm, &id);
 
   // Lectura de txt
+  char inputFileName[] = "input.txt"; // Nombre del archivo de entrada
+  char search[64]; // Cadena de búsqueda
 
-  // if (id == 0) {
-    char inputFileName[] = "input.txt"; // Nombre del archivo de entrada
-    char search[64]; // Cadena de búsqueda
+  // Abrir el archivo de entrada
+  FILE *fileIn = fopen(inputFileName, "r");
+  if (fileIn == NULL) {
+    perror("Error al abrir el archivo de entrada");
+    return 1;
+  }
 
-    // Abrir el archivo de entrada
-    FILE *fileIn = fopen(inputFileName, "r");
-    if (fileIn == NULL) {
-      perror("Error al abrir el archivo de entrada");
-      return 1;
-    }
-
-    // Leer la clave
-    if (fgets(keyLine, sizeof(keyLine), fileIn) == NULL) {
-      perror("Error al leer la clave del archivo");
-      fclose(fileIn);
-      return 1;
-    }
-
-    long key = atol(keyLine); // Convertir la clave a long
-    if (id == 0){
-      printf("key: %ld\n", key);
-    }
-
-    // Leer el texto cifrado
-    if (fgets(cipherLine, sizeof(cipherLine), fileIn) == NULL) {
-      perror("Error al leer el texto cifrado del archivo");
-      fclose(fileIn);
-      return 1;
-    }
-
-    // Leer cadena de busqueda
-    if (fgets(search, sizeof(search), fileIn) == NULL) {
-      perror("Error al leer el texto cifrado del archivo");
-      fclose(fileIn);
-      return 1;
-    }
-
-    if (id == 0){
-      printf("OG: %s\n", cipherLine);
-    }
-
-    // Cifrar texto
-    char buffer[512];
-    encrypt(key, cipherLine, sizeof(cipherLine));
-
-    // printf("CIFRADO: %s\n", cipherLine);
-
+  // Leer la clave
+  if (fgets(keyLine, sizeof(keyLine), fileIn) == NULL) {
+    perror("Error al leer la clave del archivo");
     fclose(fileIn);
-  // }
+    return 1;
+  }
+
+  long key = atol(keyLine); // Convertir la clave a long
+  if (id == 0){
+    printf("------ Encriptacion ------\n");
+    printf("Llave privada a utilizar: %ld\n", key);
+  }
+
+  // Leer el texto cifrado
+  if (fgets(cipherLine, sizeof(cipherLine), fileIn) == NULL) {
+    perror("Error al leer el texto cifrado del archivo");
+    fclose(fileIn);
+    return 1;
+  }
+
+  // Leer cadena de busqueda
+  if (fgets(search, sizeof(search), fileIn) == NULL) {
+    perror("Error al leer el texto cifrado del archivo");
+    fclose(fileIn);
+    return 1;
+  }
 
   if (id == 0){
-    printf("CIFRADO: %s\n", cipherLine);
+    printf("Mensaje Original: %s\n", cipherLine);
+  }
+
+  // Cifrar texto
+  char buffer[512];
+  encrypt(key, cipherLine, sizeof(cipherLine));
+  fclose(fileIn);
+
+  if (id == 0){
+    printf("Mensaje Cifrado: %s\n", cipherLine);
+    printf("\n------ Desencriptando por Bruteforce ------\n");
   }
 
   MPI_Barrier(MPI_COMM_WORLD); // Barrera MPI
@@ -161,9 +143,6 @@ int main(int argc, char *argv[]){ //char **argv
   MPI_Irecv(&found, 1, MPI_LONG, MPI_ANY_SOURCE, MPI_ANY_TAG, comm, &req);
 
   for(int i = mylower; i<myupper && (found==0); ++i){
-    if (i == 42) {
-      printf("rank %d try %d\n", id, i);
-    }
     if(tryKey(i, (char *)cipherLine, ciphlen, search)){
       found = i;
       for(int node=0; node<N; node++){
