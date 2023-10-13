@@ -1,7 +1,6 @@
-//bruteforce.c
-//nota: el key usado es bastante pequenio, cuando sea random speedup variara
-// compilar: mpicc -o bruteforce bruteforce.c -lcrypto
-// ejecutar: mpirun -np 4 bruteforce
+//bf2.c
+// compilar: mpicc -o bf2 bf2.c -lcrypto -Wno-deprecated-declarations
+// ejecutar: mpirun -np 4 bf2
 
 #include <string.h>
 #include <stdio.h>
@@ -162,13 +161,18 @@ for (long currentKey = mylower; currentKey <= myupper; currentKey++) {
     MPI_Allreduce(&found, &found, 1, MPI_LONG, MPI_MAX, comm);
 
     if (id == 0) {
+        tend = MPI_Wtime();
         if (found > 0) {
             printf("Clave encontrada: %ld\n", found);
+            decrypt(found, (char *)cipherLine, ciphlen);
+            printf("%li %s\n", found, cipherLine);
+            printf("\nTook %f ms to run\n", (tend-tstart) * 1000);
         } else {
-            printf("La clave no fue encontrada en el rango de claves.\n");
+            printf("La clave no se encontró en ningún nodo.\n");
         }
     }
 
+  
     MPI_Finalize();
     return 0;
 }
