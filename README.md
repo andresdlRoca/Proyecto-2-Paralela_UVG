@@ -72,7 +72,7 @@ n_i ^ exp. Donde n_i es el numero de proceso y exp es el exponente.
 > es una prueba de
 
 ## Programa Paralelo de "bf2"
-
+Implementacion paralela de algoritmo para desencriptacion utilizando ***AllReduce*** de MPI
 
 ### Compilacion
 

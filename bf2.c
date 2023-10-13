@@ -26,8 +26,6 @@ void decrypt(long key, char *ciph, int len) {
     for (int i = 0; i < len; i += 8) {
         DES_ecb_encrypt((DES_cblock *)(ciph + i), (DES_cblock *)(ciph + i), &keysched, DES_DECRYPT);
     }
-
-    printf("%li %s\n dentro de la funcion", found, cipherLine);
 }
 
 void encrypt(long key, char *ciph, int len) {
@@ -97,7 +95,6 @@ int main(int argc, char *argv[]){ //char **argv
     fclose(fileIn);
     return 1;
   }
-  int ciphlen = strlen(cipherLine);
   long key = atol(keyLine); // Convertir la clave a long
   if (id == 0){
     printf("------ Encriptacion ------\n");
@@ -110,6 +107,7 @@ int main(int argc, char *argv[]){ //char **argv
     fclose(fileIn);
     return 1;
   }
+  int ciphlen = strlen(cipherLine);
 
   // Leer cadena de busqueda
   if (fgets(search, sizeof(search), fileIn) == NULL) {
@@ -129,7 +127,7 @@ int main(int argc, char *argv[]){ //char **argv
 
  if (id == 0){
     printf("Mensaje Cifrado: %s\n", cipherLine);
-    printf("\n------ Desencriptando por Bruteforce ------\n");
+    printf("\n------ Desencriptando por AllReduce ------\n");
   }
  
  if(id==0){
@@ -164,8 +162,8 @@ int main(int argc, char *argv[]){ //char **argv
         tend = MPI_Wtime();
         if (found > 0) {
             printf("Clave encontrada: %ld\n", found);
-            decrypt(found, (char *)cipherLine, ciphlen);
-            printf("%li %s\n", found, cipherLine);
+            decrypt(found, cipherLine, ciphlen);
+            printf("Mensaje Descifrado: %s", cipherLine);
             printf("\nTook %f ms to run\n", (tend-tstart) * 1000);
         } else {
             printf("La clave no se encontró en ningún nodo.\n");
