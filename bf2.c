@@ -26,6 +26,8 @@ void decrypt(long key, char *ciph, int len) {
     for (int i = 0; i < len; i += 8) {
         DES_ecb_encrypt((DES_cblock *)(ciph + i), (DES_cblock *)(ciph + i), &keysched, DES_DECRYPT);
     }
+
+    printf("%li %s\n dentro de la funcion", found, cipherLine);
 }
 
 void encrypt(long key, char *ciph, int len) {
