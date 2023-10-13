@@ -158,8 +158,8 @@ int main(int argc, char *argv[]){ //char **argv
     }
 
     if(id==0){
-        tend = MPI_Wtime();
         MPI_Wait(&req, &st);
+        tend = MPI_Wtime();
         decrypt(found, (char *)cipherLine, ciphlen);
         printf("%li %s\n", found, cipherLine);
         printf("Took %f ms to run\n", (tend-tstart) * 1000);
