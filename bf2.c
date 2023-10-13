@@ -16,7 +16,6 @@ void decrypt(long key, char *ciph, int len) {
 
     // Set parity of key
     for (int i = 0; i < 8; ++i) {
-        key <<= 1;
         des_key[i] = (key & (0xFE << i * 8)) >> (i * 8);
     }
 
@@ -58,15 +57,6 @@ int tryKey(long key, char *ciph, int len,char search[]){
   return strstr((char *)temp, search) != NULL;
 }
 
-int tryKeyRange(long start, long end, char *ciph, int len, char search[]) {
-    // Función que prueba un rango de claves
-    for (long key = start; key <= end; key++) {
-        if (tryKey(key, ciph, len, search)) {
-            return key;  // Si se encuentra la clave, devolverla
-        }
-    }
-    return -1;  // Devolver -1 si no se encuentra la clave en el rango
-}
 
 int main(int argc, char *argv[]){ //char **argv
   int flag;
@@ -142,43 +132,39 @@ int main(int argc, char *argv[]){ //char **argv
     printf("------ Desencriptando por Bruteforce ------\n");
   }
  
-
-
-
-
   // Descifrado
-// Calcula el rango de claves para este proceso
-    long range_per_node = upper / N;
-    mylower = range_per_node * id;
-    myupper = range_per_node * (id + 1) - 1;
+    long found = 0;
+    int range_per_node = upper / N;
 
-    if (id == N - 1) {
-        // Compensar residuo
-        myupper = upper;
+    mylower = range_per_node * id;
+    myupper = range_per_node * (id+1) -1;
+
+    if(id == N-1){
+        myupper = upper; //compensar residuo
     }
 
-    // Variables para almacenar la clave encontrada
-    long foundKey = -1;
+for (long currentKey = mylower; currentKey <= myupper; currentKey++) {
 
-    // Ejecuta la búsqueda de clave en el rango asignado
-    foundKey = tryKeyRange(mylower, myupper, cipherLine, ciphlen, search);
-
-    // Realiza una reducción MPI para encontrar la clave en todos los procesos
-    MPI_Allreduce(&foundKey, &foundKey, 1, MPI_LONG, MPI_MAX, comm);
-
-    if (foundKey != -1) {
-        // Un proceso ha encontrado la clave
-        if (id == 0) {
-            tend = MPI_Wtime();
-            // El proceso 0 muestra el resultado
-            decrypt(foundKey, cipherLine, ciphlen);
-            printf("Clave encontrada: %ld\n", foundKey);
-            printf("Mensaje descifrado: %s\n", (char *)cipherLine);
-            printf("\nTook %f ms to run\n", (tend-tstart) * 1000);
+        if (tryKey(currentKey, cipherLine, sizeof(cipherLine), search)) {
+            found = currentKey;
+            printf("%ld",found);
+            break; // Salir del bucle si se encuentra la clave
         }
-    } else {
-        if (id == 0) {
-            // Ningún proceso encontró la clave
+    }
+
+    // Comunicar el resultado
+    if (found > 0) {
+        // Clave encontrada en este nodo
+        printf("Clave encontrada en el nodo %d: %ld\n", id, found);
+    }
+
+    // Realizar una reducción de máximo para encontrar la clave en todos los nodos
+    MPI_Allreduce(&found, &found, 1, MPI_LONG, MPI_MAX, comm);
+
+    if (id == 0) {
+        if (found > 0) {
+            printf("Clave encontrada: %ld\n", found);
+        } else {
             printf("La clave no fue encontrada en el rango de claves.\n");
         }
     }
