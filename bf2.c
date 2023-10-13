@@ -145,12 +145,10 @@ int main(int argc, char *argv[]){ //char **argv
         myupper = upper; //compensar residuo
     }
     
-    MPI_Irecv(&found, 1, MPI_LONG, MPI_ANY_SOURCE, MPI_ANY_TAG, comm, &req);
-    
+      
     for (long currentKey = mylower; currentKey <= myupper; currentKey++) {
         if (tryKey(currentKey, cipherLine, sizeof(cipherLine), search)) {
             found = currentKey;
-            MPI_Send(&found, 1, MPI_LONG, 0, 0, MPI_COMM_WORLD);
             break;
         }
     }
