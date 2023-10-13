@@ -150,15 +150,9 @@ int main(int argc, char *argv[]){ //char **argv
     for (long currentKey = mylower; currentKey <= myupper; currentKey++) {
         if (tryKey(currentKey, cipherLine, sizeof(cipherLine), search)) {
             found = currentKey;
+            MPI_Send(&found, 1, MPI_LONG, 0, 0, MPI_COMM_WORLD);
             break;
         }
-    }
-
-    // Comunicar el resultado
-    if (found > 0) {
-        // Clave encontrada en este nodo
-        printf("Clave encontrada en el nodo %d: %ld\n", id, found);
-        MPI_Send(&found, 1, MPI_LONG, id, 0, MPI_COMM_WORLD);
     }
 
     // Realizar reducción de máximo en todos los nodos
@@ -168,7 +162,6 @@ int main(int argc, char *argv[]){ //char **argv
         tend = MPI_Wtime();
         if (found > 0) {
             printf("Clave encontrada: %ld\n", found);
-            MPI_Wait(&req, &st);
             decrypt(found, (char *)cipherLine, ciphlen);
             printf("%li %s\n", found, cipherLine);
             printf("\nTook %f ms to run\n", (tend-tstart) * 1000);
@@ -176,6 +169,7 @@ int main(int argc, char *argv[]){ //char **argv
             printf("La clave no se encontró en ningún nodo.\n");
         }
     }
+
   
     MPI_Finalize();
     return 0;
