@@ -30,3 +30,9 @@
 *.exe
 *.out
 *.app
+
+# our compilations
+bf2
+fases
+bf
+bfsec

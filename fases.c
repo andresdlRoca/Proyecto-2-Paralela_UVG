@@ -1,7 +1,7 @@
 //bruteforce.c
 //nota: el key usado es bastante pequenio, cuando sea random speedup variara
-// compilar: mpicc -o bruteforce bruteforce.c -lcrypto -lssl
-// ejecutar: mpirun -np 4 bruteforce
+// compilar: mpicc -o heuristics heuristic.c -lcrypto -lssl
+// ejecutar: mpirun -np 4 heuristics
 
 #include <string.h>
 #include <stdio.h>
@@ -125,7 +125,7 @@ int main(int argc, char *argv[]){ //char **argv
 
     if (id == 0){
         printf("Mensaje Cifrado: %s\n", cipherLine);
-        printf("\n------ Desencriptando por Bruteforce ------\n");
+        printf("\n------ Desencriptando por Fases ------\n");
     }
 
     MPI_Barrier(MPI_COMM_WORLD); // Barrera MPI
@@ -146,20 +146,43 @@ int main(int argc, char *argv[]){ //char **argv
     long found = 0;
 
     MPI_Irecv(&found, 1, MPI_LONG, MPI_ANY_SOURCE, MPI_ANY_TAG, comm, &req);
+    long limit = myupper;
+    long exp = 1;
+    long start = myupper;
 
-    for(int i = mylower; i<myupper && (found==0); ++i){
-        if(tryKey(i, (char *)cipherLine, ciphlen, search)){
-        found = i;
-        for(int node=0; node<N; node++){
-            MPI_Send(&found, 1, MPI_LONG, node, 0, MPI_COMM_WORLD);
+    for(int i = 0; found==0; ++i){
+        int temp_index = i;
+
+        if (myupper < upper && i > myupper) {
+            temp_index = myupper;
+            long differ = i - myupper;
+
+            for (int local_exp = 0; local_exp < exp; local_exp++) {
+                temp_index *= myupper;
+            }
+
+            temp_index += differ;
+
+            if (temp_index == limit) {
+                exp += 2;
+                for (int local_exp = 0; local_exp <= exp; local_exp++) {
+                   temp_index *= myupper;
+                }
+            }
         }
-        break;
+
+        if(tryKey(temp_index, (char *)cipherLine, ciphlen, search)){
+            found = temp_index;
+            for(int node = 0; node < N; node++) {
+                MPI_Send(&found, 1, MPI_LONG, node, 0, MPI_COMM_WORLD);
+            }
+            break;
         }
     }
 
-    if(id==0){
-        MPI_Wait(&req, &st);
+    if (id==0) {
         tend = MPI_Wtime();
+        MPI_Wait(&req, &st);
         decrypt(found, (char *)cipherLine, ciphlen);
         printf("%li %s\n", found, cipherLine);
         printf("Took %f ms to run\n", (tend-tstart) * 1000);
