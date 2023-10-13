@@ -68,7 +68,7 @@ int main(int argc, char *argv[]){ //char **argv
  
   char keyLine[64];
   unsigned char cipherLine[64];
-  int ciphlen = strlen(cipherLine);
+ 
   MPI_Comm comm = MPI_COMM_WORLD;
 
   MPI_Init(NULL, NULL);
@@ -95,7 +95,7 @@ int main(int argc, char *argv[]){ //char **argv
     fclose(fileIn);
     return 1;
   }
-
+  int ciphlen = strlen(cipherLine);
   long key = atol(keyLine); // Convertir la clave a long
   if (id == 0){
     printf("------ Encriptacion ------\n");
