@@ -58,7 +58,6 @@ int tryKey(long key, char *ciph, int len,char search[]){
 
 
 int main(int argc, char *argv[]){ //char **argv
-  int flag;
   int N, id;
   long mylower, myupper;
   long upper = (1L <<56); //upper bound DES keys 2^56
@@ -128,9 +127,13 @@ int main(int argc, char *argv[]){ //char **argv
 
  if (id == 0){
     printf("Mensaje Cifrado: %s\n", cipherLine);
-    printf("------ Desencriptando por Bruteforce ------\n");
+    printf("\n------ Desencriptando por Bruteforce ------\n");
   }
  
+ if(id==0){
+    tstart = MPI_Wtime();
+  }
+
   // Descifrado
     long found = 0;
     int range_per_node = upper / N;
@@ -141,13 +144,13 @@ int main(int argc, char *argv[]){ //char **argv
     if(id == N-1){
         myupper = upper; //compensar residuo
     }
-
-for (long currentKey = mylower; currentKey <= myupper; currentKey++) {
-
+    
+    MPI_Irecv(&found, 1, MPI_LONG, MPI_ANY_SOURCE, MPI_ANY_TAG, comm, &req);
+    
+    for (long currentKey = mylower; currentKey <= myupper; currentKey++) {
         if (tryKey(currentKey, cipherLine, sizeof(cipherLine), search)) {
             found = currentKey;
-            printf("%ld",found);
-            break; // Salir del bucle si se encuentra la clave
+            break;
         }
     }
 
@@ -155,15 +158,17 @@ for (long currentKey = mylower; currentKey <= myupper; currentKey++) {
     if (found > 0) {
         // Clave encontrada en este nodo
         printf("Clave encontrada en el nodo %d: %ld\n", id, found);
+        MPI_Send(&found, 1, MPI_LONG, id, 0, MPI_COMM_WORLD);
     }
 
-    // Realizar una reducción de máximo para encontrar la clave en todos los nodos
+    // Realizar reducción de máximo en todos los nodos
     MPI_Allreduce(&found, &found, 1, MPI_LONG, MPI_MAX, comm);
 
     if (id == 0) {
         tend = MPI_Wtime();
         if (found > 0) {
             printf("Clave encontrada: %ld\n", found);
+            MPI_Wait(&req, &st);
             decrypt(found, (char *)cipherLine, ciphlen);
             printf("%li %s\n", found, cipherLine);
             printf("\nTook %f ms to run\n", (tend-tstart) * 1000);
@@ -171,7 +176,6 @@ for (long currentKey = mylower; currentKey <= myupper; currentKey++) {
             printf("La clave no se encontró en ningún nodo.\n");
         }
     }
-
   
     MPI_Finalize();
     return 0;
